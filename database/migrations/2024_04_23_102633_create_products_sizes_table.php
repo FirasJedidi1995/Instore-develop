@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('product_size', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('size_id')->nullable()->constrained('sizes')->cascadeOnDelete();
             $table->foreignId('product_id')->nullable()->constrained('products')->cascadeOnDelete();
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->cascadeOnDelete();
+            
+            $table->integer('quantity')->default(0);
             $table->timestamps();
         });
     }

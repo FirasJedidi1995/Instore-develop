@@ -7,11 +7,13 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordResetRequestController;
 use App\Http\Controllers\BackOffice\BrandController;
 use App\Http\Controllers\BackOffice\CategoryController;
+use App\Http\Controllers\BackOffice\ColorController;
 use App\Http\Controllers\FrontOffice\Client\ClientController;
 use App\Http\Controllers\BackOffice\MessageController;
 use App\Http\Controllers\BackOffice\OrderController;
 use App\Http\Controllers\BackOffice\UserController;
 use App\Http\Controllers\BackOffice\ProductController;
+use App\Http\Controllers\BackOffice\SizeController;
 use App\Http\Controllers\BackOffice\SubcategoryController;
 use App\Http\Controllers\FrontOffice\Instagrammer\ProductInstagrammerController;
 use App\Http\Controllers\FrontOffice\Instagrammer\InstagrammerController;
@@ -93,20 +95,38 @@ Route::prefix('brands')->group(function(){
   Route::get('show/{id}',[BrandController::class,'show']);
 });
 
+//Sizes
+Route::prefix('sizes')->group(function(){
+  Route::get('/',[SizeController::class,'index']);
+  Route::post('/save',[SizeController::class,'store']);
+  Route::put('/update/{id}',[SizeController::class,'update']);
+  Route::delete('/delete/{id}',[SizeController::class,'destroy']);
+  Route::get('show/{id}',[SizeController::class,'show']);
+  
+  
+});
+
+//Colors
+Route::prefix('colors')->group(function(){
+  Route::get('/',[ColorController::class,'index']);
+  Route::post('/save',[ColorController::class,'store']);
+  Route::put('/update/{id}',[ColorController::class,'update']);
+  Route::delete('/delete/{id}',[ColorController::class,'destroy']);
+  Route::get('show/{id}',[ColorController::class,'show']);
+  
+  
+});
 
 //product
 Route::prefix('products')->group(function () {
   Route::get('/', [ProductController::class, 'index']);
   Route::post('/save', [ProductController::class, 'store']);
   Route::post('/update/{id}', [ProductController::class, 'update']);
-  Route::post('/addImages/{id}', [ProductController::class, 'addImages']);
-  Route::post('/deleteImages/{id}', [ProductController::class, 'deleteImages']);
   Route::delete('/delete/{id}', [ProductController::class, 'destroy']);
   Route::get('filterProduct', [ProductController::class, 'filterProduct']);
   Route::get('/show/{id}',[ProductController::class, 'show']);
-  Route::post('/updateProductStatus/{id}', [ProductController::class, 'updateProductStatus']);
-  Route::get('/colors',[ProductController::class, 'colors']);
-  Route::get('/sizes',[ProductController::class, 'sizes']);
+  //Route::post('/updateProductStatus/{id}', [ProductController::class, 'updateProductStatus']);
+ 
 
 
 });
@@ -166,17 +186,18 @@ Route::prefix('providers')->group(function(){
   Route::post('/updateProduct/{id}', [ProductProviderController::class, 'update']);
   Route::post('/updateEchantillon/{id}', [ProviderController::class, 'updateEchantillon']);
   Route::get('/getProviderProducts', [ProviderController::class, 'getProviderProducts']);
-  Route::post('updateSelfData',[ProviderController::class, 'updateSelfData']);
-  Route::post('/sendMessage', [ProviderController::class, 'sendProviderMessage']);
-  Route::get('/colors',[ProductProviderController::class, 'colors']);
-  Route::get('/sizes',[ProductProviderController::class, 'sizes']);
-  Route::get('/getOrdersByProvider',[ProviderController::class, 'getOrdersByProvider']);
-  Route::get('/show/{id}',[ProviderController::class, 'show']);
-  Route::get('/getUserData',[ProviderController::class, 'getUserData']);
-  Route::get('/getMessagesByAdmin',[ProviderController::class, 'getMessagesByAdmin']);
-  Route::get('/echantillons',[ProviderController::class, 'getListEchantillons']);
-  Route::get('/showEchantillon/{id}',[ProviderController::class, 'showEchantillon']);
-  Route::get('/getOrderByStatus',[ProviderController::class, 'getOrderByStatus']);
+  Route::delete('/delete/{id}',[ProductProviderController::class,'destroy']);
+  //Route::post('updateSelfData',[ProviderController::class, 'updateSelfData']);
+  //Route::post('/sendMessage', [ProviderController::class, 'sendProviderMessage']);
+  // Route::get('/colors',[ProductProviderController::class, 'colors']);
+  // Route::get('/sizes',[ProductProviderController::class, 'sizes']);
+  // Route::get('/getOrdersByProvider',[ProviderController::class, 'getOrdersByProvider']);
+  // Route::get('/show/{id}',[ProviderController::class, 'show']);
+  // Route::get('/getUserData',[ProviderController::class, 'getUserData']);
+  // Route::get('/getMessagesByAdmin',[ProviderController::class, 'getMessagesByAdmin']);
+  // Route::get('/echantillons',[ProviderController::class, 'getListEchantillons']);
+  // Route::get('/showEchantillon/{id}',[ProviderController::class, 'showEchantillon']);
+  // Route::get('/getOrderByStatus',[ProviderController::class, 'getOrderByStatus']);
 
 
 });

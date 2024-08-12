@@ -12,32 +12,15 @@ class Color extends Model
     
     protected $table = 'colors';
     protected $primaryKey = 'id';
-    protected $fillable = ['name'];
+    protected $fillable = ['name','code'];
 
 
-    // public function caracteristiques()
-    // {
-    //     return $this->hasMany(Caracteristique::class);
-    // }
-
-    
-    // public function products()
-    // {
-    //     return $this->belongsToMany(Product::class,'color_product');
-    // }
-
-    // public function products()
-    // {
-    //     return $this->belongsToMany(Product::class, 'caracteristiques')
-    //                 ->withPivot('size_id', 'quantity')
-    //                 ->withTimestamps();
-    // }
-
+   
 
     public function products()
     {
-        return $this->belongsToMany(Product::class, 'color_product')
-                    ->withPivot('quantity')
+        return $this->belongsToMany(Product::class, 'product_size_color')
+                    ->withPivot('size_id', 'quantity')
                     ->withTimestamps();
     }
     

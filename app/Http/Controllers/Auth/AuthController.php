@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Validation\Rule;
 use App\Mail\forgetPasswordCode;
 use App\Models\verification_code;
-
+use Tymon\JWTAuth\Exceptions\TokenInvalidException as JWTTokenInvalidException;
 class AuthController extends Controller
 {
 
@@ -43,7 +43,9 @@ class AuthController extends Controller
             'companyName'=> 'nullable|string',
             'companyUnderConstruction'=> 'nullable|boolean',
         ];
-
+        if (User::where('email', $request->input('email'))->exists()) {
+            return response()->json(['error' => 'Email already exists'], Response::HTTP_CONFLICT);
+        }
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json([
@@ -55,7 +57,7 @@ class AuthController extends Controller
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('storage/users'), $imageName);
+            $image->move(public_path('users'), $imageName);
         }
 
         $user = User::create(array_merge(
@@ -69,7 +71,7 @@ class AuthController extends Controller
     //     $user->email = $request->email;
     //     $user->password = Hash::make($request->password);
     //    // $user->image  = 'http://localhost:8000/storage/users/' . $imageName;
-    //     $user->image = $imageName ?  asset('/storage/users'). '/' . $imageName : null;
+    //     $user->image = $imageName ?  asset('users'). '/' . $imageName : null;
     //     $user->acountLink = $request->acountLink;
     //     $user->street = $request->street;
     //     $user->city = $request->city;
@@ -81,12 +83,40 @@ class AuthController extends Controller
     //         $user->TAXNumber  = $request->TAXNumber;
     //     } 
 
-        $user->save();
+    //     $user->save();
         $user->assignRole($request->role);
         
         return response()->json('User Created');
     }
    
+    // public function login(Request $request)
+    // {
+    //     $creds = $request->only(['email','password']);
+    //     if (!$token=auth()->attempt($creds)){
+    //         return response()->json([
+    //             'success'=>false,
+    //             'message'=>'information incorrecte'
+    //         ],Response::HTTP_UNAUTHORIZED);
+    //     }
+    //     $user = User::where('email', $request->email)->first();
+       
+
+    //     if ($user->status != 'ACTIVE') {
+    //             return response()->json([
+    //                 "message" => 'Your account is not active',
+    //                 "status" => 401
+    //             ]);
+    //         }
+
+
+    //     return response()->json([
+    //         'success'=>true,
+    //         'token'=>$token,
+    //         'user'=>Auth::user()
+    //     ],Response::HTTP_OK);
+
+    // }
+
     public function login(Request $request)
     {
         $creds = $request->only(['email','password']);
@@ -105,12 +135,16 @@ class AuthController extends Controller
                     "status" => 401
                 ]);
             }
-        return response()->json([
-            'success'=>true,
-            'token'=>$token,
-            'user'=>Auth::user()
-        ],Response::HTTP_OK);
 
+            $accessToken = $token;
+            $refreshToken = FacadesJWTAuth::claims(['exp' => now()->addWeeks(2)->timestamp])->fromUser(auth()->user());
+            $expiresIn = config('jwt.ttl') * 60;
+            return response()->json([
+                'access_token' => $accessToken,
+                'refresh_token' => $refreshToken,
+                'token_type' => 'bearer',
+                'expires_in' => $expiresIn
+            ]);
     }
 
     public function logout(Request $request){
@@ -422,6 +456,15 @@ public function forgetPassWord(Request $request)
     //         ]);
     //     }
     // }
+        /**
+     * Refresh a token.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    // public function refresh()
+    // {
+    //     return $this->respondWithToken(auth()->refresh());
+    // }
     
     public function updateUserPassword(Request $request, $id)
     {
@@ -490,5 +533,30 @@ public function forgetPassWord(Request $request)
     //         "status" => 200,
     //     ]);
     // }
+
+    /**
+     * Get the token array structure.
+     *
+     * @param  string $token
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+
+     public function refresh()
+     {
+         $token = FacadesJWTAuth::getToken();
+         if (!$token) {
+             return response()->json(['error' => 'Token not provided'], 401);
+         }
+     
+         try {
+             $refreshedToken = FacadesJWTAuth::refresh($token);
+         } catch (JWTTokenInvalidException $e) {
+             return response()->json(['error' => 'Invalid token'], 401);
+         }
+     
+         return response()->json(['access_token' => $refreshedToken]);
+     }
+     
 
 }

@@ -13,27 +13,11 @@ class Size extends Model
     protected $primaryKey = 'id';
     protected $fillable = ['name'];
 
-    // public function caracteristiques()
-    // {
-    //     return $this->hasMany(Caracteristique::class);
-    // }
-
-    // public function products()
-    // {
-    //     return $this->belongsToMany(Product::class);
-    // }
-    
-    // public function products()
-    // {
-    //     return $this->belongsToMany(Product::class, 'caracteristiques')
-    //                 ->withPivot('color_id', 'quantity')
-    //                 ->withTimestamps();
-    // }
 
     public function products()
     {
-        return $this->belongsToMany(Product::class, 'product_size')
-                    ->withPivot('quantity')
+        return $this->belongsToMany(Product::class, 'product_size_color')
+                    ->withPivot('color_id', 'quantity')
                     ->withTimestamps();
     }
 }

@@ -13,6 +13,7 @@ class Caracteristique extends Model
         'color_id',
         'size_id',
         'quantity',
+        'user_id'
     ];
 
     // Define relationships if needed
@@ -29,5 +30,9 @@ class Caracteristique extends Model
     public function size()
     {
         return $this->belongsTo(Size::class);
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

@@ -14,22 +14,23 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description');
-            $table->integer('quantity');
+            $table->text('description')->nullable(); 
+            $table->integer('quantity')->default(0); 
             $table->decimal('priceSale', 8, 2);
             $table->decimal('priceFav', 8, 2)->nullable();
             $table->decimal('priceMax', 8, 2)->nullable();
-            $table->string('reference');
-            $table->foreignId('brand_id')->references('id')->on('brands')->onDelete('cascade');
-            $table->foreignId('subcategory_id')->references('id')->on('subcategories')->onDelete('cascade');
+            $table->string('reference')->unique(); 
+            $table->foreignId('brand_id')->constrained()->onDelete('cascade');
+            $table->foreignId('subcategory_id')->constrained()->onDelete('cascade');
+            $table->foreignId('provider_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('instagrammer_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('admin_id')->nullable()->constrained('users')->onDelete('set null');
             $table->enum('echantillon', ['FREE', 'PAID', 'REFUNDED'])->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
+  
     public function down(): void
     {
         Schema::dropIfExists('products');

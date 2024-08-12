@@ -8,24 +8,19 @@ use Illuminate\Support\Facades\DB;
 
 class ColorsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $colors = [
-            'Red',
-            'Blue',
-            'Green',
-            'Yellow',
-            'Purple',
-            // Ajoutez d'autres couleurs si nécessaire
+            ['name' => 'Red', 'code' => '#FF0000'],
+            ['name' => 'Blue', 'code' => '#0000FF'],
+            ['name' => 'Green', 'code' => null], 
+            ['name' => 'Yellow', 'code' => '#FFFF00'],
+            ['name' => 'Purple'], 
         ];
+        
 
         foreach ($colors as $color) {
-            DB::table('colors')->insert([
-                'name' => $color,
-            ]);
+            DB::table('colors')->insert($color);
         }
     
     }
