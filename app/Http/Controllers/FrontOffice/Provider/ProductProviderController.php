@@ -101,8 +101,11 @@ class ProductProviderController extends Controller
     
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
+        }else{
+            $product->quantity=$validatedData['quantity'];
         }
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
         
             if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
@@ -112,7 +115,7 @@ class ProductProviderController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
-    
+        $product->save();
         return response()->json($product, Response::HTTP_CREATED);
     }
     
@@ -242,8 +245,12 @@ class ProductProviderController extends Controller
     
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
+        }else{
+            $product->quantity=$validatedData['quantity'];
         }
+    
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
     
         
         if ($request->hasFile('images')) {
@@ -257,7 +264,7 @@ class ProductProviderController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
-    
+        $product->save();
         return response()->json($product, Response::HTTP_OK);
     }
 

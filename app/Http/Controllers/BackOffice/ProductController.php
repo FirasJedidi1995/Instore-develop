@@ -46,6 +46,9 @@ class ProductController extends Controller
             'combinations.*.quantity' => 'required_with:combinations|integer|min:0',
             'images' => 'nullable|array',
             'images.*' => 'nullable|image|max:2048',
+            
+           
+
         ];
         
         $validatedData = $request->validate($rules);
@@ -64,40 +67,46 @@ class ProductController extends Controller
         $product->subcategory_id = $validatedData['subcategory_id'];
         $product->brand_id = $validatedData['brand_id'];
         $product->echantillon = $validatedData['echantillon'] ?? null;
+        
         $product->admin_id = $user->id;
+        
         $product->save();
-    
+        
         $totalQuantity = 0;
+        
+        
     
         if (!empty($validatedData['combinations'])) {
             foreach ($validatedData['combinations'] as $combination) {
                 $sizeId = null;
                 $colorId = null;
-    
+                
                 if (!empty($combination['size'])) {
                     $size = Size::firstOrCreate(['name' => $combination['size']]);
                     $sizeId = $size->id;
                 }
-    
+                
                 if (!empty($combination['color'])) {
                     $color = Color::firstOrCreate(['name' => $combination['color']]);
                     $colorId = $color->id;
                 }
-                    $product->sizes()->attach($sizeId, [
+                $product->sizes()->attach($sizeId, [
                     'color_id' => $colorId,
                     'quantity' => $combination['quantity'],
                 ]);
-    
+                
                 $totalQuantity += $combination['quantity'];
             }
         }
-    
+        
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
         }
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
         
-            if ($request->hasFile('images')) {
+        
+        if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
                 $imageName = time() . '_' . $index . '_' . $image->getClientOriginalName();
                 $imagePath = 'images/' . $imageName;
@@ -105,6 +114,7 @@ class ProductController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
+        $product->save();
     
         return response()->json($product, Response::HTTP_CREATED);
     }
@@ -273,6 +283,7 @@ class ProductController extends Controller
             'combinations.*.quantity' => 'required_with:combinations|integer|min:0',
             'images' => 'nullable|array',
             'images.*' => 'nullable|image|max:2048',
+            //'status' => ['in:INSTOCK,OUTSTOCK', 'nullable'],
         ];
         
         $validatedData = $request->validate($rules);
@@ -282,6 +293,7 @@ class ProductController extends Controller
         $product->priceSale = $validatedData['priceSale'];
         $product->priceFav = $validatedData['priceFav'] ?? null;
         $product->priceMax = $validatedData['priceMax'] ?? null;
+        //$product->status = $validatedData['status'] ?? null;
         $totalQuantity = 0;
     
         if (!empty($validatedData['combinations'])) {
@@ -312,10 +324,12 @@ class ProductController extends Controller
 
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
+        }else{
+            $product->quantity=$validatedData['quantity'];
         }
     
-        
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
         if ($request->hasFile('images')) {
             
             $product->images()->delete();
@@ -327,7 +341,7 @@ class ProductController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
-    
+        $product->save();
         return response()->json($product, Response::HTTP_OK);
     }
 

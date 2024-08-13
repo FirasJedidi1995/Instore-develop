@@ -21,23 +21,58 @@ class BrandController extends Controller
         $brands = Brand::with('categories')->get();
         return response()->json($brands);
     }
+
     public function store(Request $request){
-        $rules=[
-            'name'=>'required|string',
-            'category_ids'=>'required|array|min:1',
-            'category_ids.*'=>'integer|exists:categories,id'
+        $rules = [
+            'name' => 'required|string',
+            'category_ids' => 'required|array|min:1',
+            'category_ids.*' => 'integer|exists:categories,id',
+            'image' => 'nullable|image|max:2048' // Validation de l'image
         ];
-        $validator=Validator::make($request->all(),$rules);
-        if($validator->fails()){
-            return response()->json(['errors'=>$validator->errors()],400);
+
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
         }
-        $brand=Brand::create(['name'=>$request->name]);
-        if($request->has('category_ids')){
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $image->move(public_path('brands'), $imageName);
+            
+        }
+
+        $brand = Brand::create([
+            'name' => $request->name,
+            'image' => asset('brands') .'/'. $imageName
+        ]);
+
+        if ($request->has('category_ids')) {
             $categoryIds = is_array($request->category_ids) ? $request->category_ids : [$request->category_ids];
             $brand->categories()->attach($categoryIds);
         }
-        return response()->json($brand,201);
+
+        return response()->json($brand, 201);
     }
+    // public function store(Request $request){
+    //     $rules=[
+    //         'name'=>'required|string',
+    //         'category_ids'=>'required|array|min:1',
+    //         'category_ids.*'=>'integer|exists:categories,id',
+    //         //'image' => 'nullable|image|max:2048'
+    //     ];
+    //     $validator=Validator::make($request->all(),$rules);
+    //     if($validator->fails()){
+    //         return response()->json(['errors'=>$validator->errors()],400);
+    //     }
+    //     $brand=Brand::create(['name'=>$request->name]);
+    //     if($request->has('category_ids')){
+    //         $categoryIds = is_array($request->category_ids) ? $request->category_ids : [$request->category_ids];
+    //         $brand->categories()->attach($categoryIds);
+    //     }
+    //     return response()->json($brand,201);
+    // }
     
     public function show($id){
         $brand=Brand::with('categories')->find($id);
@@ -46,29 +81,63 @@ class BrandController extends Controller
         }
         return response()->json($brand);
     }
+
+    public function update(Request $request, $id){
+        $brand = Brand::find($id);
+        if (!$brand) {
+            return response()->json(['error' => 'Brand not found'], 404);
+        }
     
-    public function update(Request $request,$id){
-        $brand=Brand::find($id);
-        if(!$brand){
-            return response()->json(['error'=>'Brand not found'],404);
-        }
-        $rules=[
-            'name'=>'string|required',
-            'category_ids'=>'required|array|min:1',
-            'category_ids.*'=>'integer|exists:categories,id',
+        $rules = [
+            'name' => 'sometimes|required|string',
+            'category_ids' => 'sometimes|array|min:1',
+            'category_ids.*' => 'integer|exists:categories,id',
+            'image' => 'nullable|image|max:2048'
         ];
-        
-        $validator=Validator::make($request->all(),$rules);
-        if($validator->fails()){
-            return response()->json(['errors'=>$validator->errors()],400);
+    
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
         }
-        $brand->update(['name'=>$request->name]);
-        if($request->has('category_ids')){
-            $categoryIds=is_array($request->category_ids) ? $request->category_ids:[$request->category_ids];
+    
+        
+        if ($request->filled('name')) {
+            $brand->name = $request->name;
+        }
+    
+       
+        if ($request->has('category_ids')) {
+            $categoryIds = is_array($request->category_ids) ? $request->category_ids : [$request->category_ids];
             $brand->categories()->sync($categoryIds);
         }
+    
+        
+        if ($request->hasFile('image')) {
+            
+            if ($brand->image) {
+                $oldImagePath = public_path(parse_url($brand->image, PHP_URL_PATH));
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+    
+            
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $image->move(public_path('brands'), $imageName);
+    
+            
+            $brand->image = asset('brands') . '/' . $imageName;
+        }
+    
+        $brand->save();
+    
         return response()->json($brand);
     }
+    
+    
+
+   
 
     public function destroy($id){
         $brand=Brand::find($id);

@@ -26,6 +26,7 @@ return new class extends Migration
             $table->foreignId('instagrammer_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('admin_id')->nullable()->constrained('users')->onDelete('set null');
             $table->enum('echantillon', ['FREE', 'PAID', 'REFUNDED'])->nullable();
+            $table->enum('status', ['INSTOCK', 'OUTSTOCK']);
             $table->timestamps();
         });
     }

@@ -143,6 +143,7 @@ class AuthController extends Controller
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshToken,
                 'token_type' => 'bearer',
+                'user'=>Auth::user(),
                 'expires_in' => $expiresIn
             ]);
     }

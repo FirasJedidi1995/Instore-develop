@@ -28,6 +28,15 @@ class ProductInstagrammerController extends Controller
 
     }
 
+    public function getIstagrammerProducts(){
+        $user = auth()->user();
+        $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
+                            ->where('instagrammer_id', $user->id)
+                            ->get();
+    
+        return response()->json($products, Response::HTTP_OK);
+    }
+
     public function index()
     {
         $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->get();
@@ -101,8 +110,11 @@ class ProductInstagrammerController extends Controller
     
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
+        }else{
+            $product->quantity=$validatedData['quantity'];
         }
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
         
             if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
@@ -112,7 +124,7 @@ class ProductInstagrammerController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
-    
+        $product->save();
         return response()->json($product, Response::HTTP_CREATED);
     }
     
@@ -162,10 +174,8 @@ class ProductInstagrammerController extends Controller
     public function show($id)
 {
     $user = auth()->user();
-    $product = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
-        ->where('id', $id)
-        ->where('instagrammer_id', $user->id)
-        ->first();
+    $product = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->find($id);
+        
 
     if (!$product) {
         return response()->json(['error' => 'Product not found or not accessible'], Response::HTTP_NOT_FOUND);
@@ -242,8 +252,12 @@ class ProductInstagrammerController extends Controller
     
         if ($totalQuantity > 0) {
             $product->quantity = $totalQuantity;
-            $product->save();
+            //$product->save();
+        }else{
+            $product->quantity=$validatedData['quantity'];
         }
+    
+        $product->status = $validatedData['status'] ?? ($product->quantity > 0 ? 'INSTOCK' : 'OUTSTOCK');
     
         
         if ($request->hasFile('images')) {
@@ -257,6 +271,7 @@ class ProductInstagrammerController extends Controller
                 $product->images()->create(['path' => asset($imagePath)]);
             }
         }
+        $product->save();
     
         return response()->json($product, Response::HTTP_OK);
     }
