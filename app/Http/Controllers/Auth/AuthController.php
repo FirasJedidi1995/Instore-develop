@@ -60,62 +60,20 @@ class AuthController extends Controller
             $image->move(public_path('users'), $imageName);
         }
 
+        $userData = $validator->validated();
+        $userData['image'] = asset('users') . '/' . $imageName; // hedhi temchi salla7tha
         $user = User::create(array_merge(
-            $validator->validated(),
+            $userData,
             ['password' => bcrypt($request->password)]
         ));
 
-    //     $user = new User();
-    //     $user->name = $request->name;
-    //     $user->phone = $request->phone;
-    //     $user->email = $request->email;
-    //     $user->password = Hash::make($request->password);
-    //    // $user->image  = 'http://localhost:8000/storage/users/' . $imageName;
-    //     $user->image = $imageName ?  asset('users'). '/' . $imageName : null;
-    //     $user->acountLink = $request->acountLink;
-    //     $user->street = $request->street;
-    //     $user->city = $request->city;
-    //     $user->post_code = $request->post_code;
-    //     $user->CIN = $request->CIN;
-    //     $user->companyName = $request->companyName;
-    //     $user->companyUnderConstruction = $request->companyUnderConstruction;
-    //     if ($request->companyUnderConstruction == false) {
-    //         $user->TAXNumber  = $request->TAXNumber;
-    //     } 
-
-    //     $user->save();
+   
         $user->assignRole($request->role);
         
         return response()->json('User Created');
     }
    
-    // public function login(Request $request)
-    // {
-    //     $creds = $request->only(['email','password']);
-    //     if (!$token=auth()->attempt($creds)){
-    //         return response()->json([
-    //             'success'=>false,
-    //             'message'=>'information incorrecte'
-    //         ],Response::HTTP_UNAUTHORIZED);
-    //     }
-    //     $user = User::where('email', $request->email)->first();
-       
-
-    //     if ($user->status != 'ACTIVE') {
-    //             return response()->json([
-    //                 "message" => 'Your account is not active',
-    //                 "status" => 401
-    //             ]);
-    //         }
-
-
-    //     return response()->json([
-    //         'success'=>true,
-    //         'token'=>$token,
-    //         'user'=>Auth::user()
-    //     ],Response::HTTP_OK);
-
-    // }
+   
 
     public function login(Request $request)
     {
@@ -206,7 +164,7 @@ public function forgetPassWord(Request $request)
 
         $code = $this->randomCode(4);
 
-        // Expire old codes
+        
         verification_code::where(['email' => $request->email, 'status' => 'pending'])
             ->update(['status' => 'expired']);
 

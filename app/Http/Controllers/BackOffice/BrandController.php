@@ -27,7 +27,7 @@ class BrandController extends Controller
             'name' => 'required|string',
             'category_ids' => 'required|array|min:1',
             'category_ids.*' => 'integer|exists:categories,id',
-            'image' => 'nullable|image|max:2048' // Validation de l'image
+            'image' => 'required|image|max:2048' // Validation de l'image
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -35,7 +35,7 @@ class BrandController extends Controller
             return response()->json(['errors' => $validator->errors()], 400);
         }
 
-        $imagePath = null;
+        
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = time() . '_' . $image->getClientOriginalName();
@@ -55,24 +55,7 @@ class BrandController extends Controller
 
         return response()->json($brand, 201);
     }
-    // public function store(Request $request){
-    //     $rules=[
-    //         'name'=>'required|string',
-    //         'category_ids'=>'required|array|min:1',
-    //         'category_ids.*'=>'integer|exists:categories,id',
-    //         //'image' => 'nullable|image|max:2048'
-    //     ];
-    //     $validator=Validator::make($request->all(),$rules);
-    //     if($validator->fails()){
-    //         return response()->json(['errors'=>$validator->errors()],400);
-    //     }
-    //     $brand=Brand::create(['name'=>$request->name]);
-    //     if($request->has('category_ids')){
-    //         $categoryIds = is_array($request->category_ids) ? $request->category_ids : [$request->category_ids];
-    //         $brand->categories()->attach($categoryIds);
-    //     }
-    //     return response()->json($brand,201);
-    // }
+  
     
     public function show($id){
         $brand=Brand::with('categories')->find($id);
