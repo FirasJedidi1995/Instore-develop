@@ -146,7 +146,7 @@ Route::prefix('instagrammers')->group(function(){
   // Route::get('/getInstagrammerProducts', [InstagrammerController::class, 'getInstagrammerProducts']);
   // Route::post('/sendProviderMessage', [InstagrammerController::class, 'sendProviderMessage']);
   // Route::post('updateSelfData',[InstagrammerController::class, 'updateSelfData']);
-  // Route::get('/getProviderProducts', [InstagrammerController::class, 'getProviderProducts']);
+  Route::get('/getProviderProducts', [InstagrammerController::class, 'getProviderProducts']);
   // Route::get('/filterProducts', [InstagrammerController::class, 'filterProducts']);
   // Route::get('/getStoreProducts', [InstagrammerController::class, 'getStoreProducts']);
 

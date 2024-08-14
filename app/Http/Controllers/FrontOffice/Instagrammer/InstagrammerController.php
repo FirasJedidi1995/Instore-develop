@@ -110,16 +110,29 @@ class InstagrammerController extends Controller
         ]);
        
     } 
-
     public function getProviderProducts()
-{
-    $products = Product::whereNotNull('provider_id')->get();
-    return response()->json([
-        'message' => 'All provider products',
-        "status" => Response::HTTP_OK,
-        "data" =>  ProductResource::collection($products)
-    ]);
-}
+    {
+        $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->whereNotNull('provider_id')->get();
+        return response()->json([
+            'message' => 'All provider products',
+            "status" => Response::HTTP_OK,
+            "data" =>  $products
+        ]);
+    
+        
+    }
+
+//     public function getProviderProducts()
+// {
+//     $products = Product::whereNotNull('provider_id')->get();
+//     return response()->json([
+//         'message' => 'All provider products',
+//         "status" => Response::HTTP_OK,
+//         "data" =>  ProductResource::collection($products)
+//     ]);
+
+    
+// }
 
 public function filterProducts(Request $request)
 {
