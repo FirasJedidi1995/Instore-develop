@@ -27,8 +27,6 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'phone',
         'status',
-        //'birthday',
-        //'sexe',
         'image',
         'street',
         'city',
@@ -73,10 +71,18 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
   
-
-    public function caracteristiques()
+    public function echantillons()
     {
-        return $this->hasMany(Caracteristique::class);
+        return $this->hasMany(Echantillon::class, 'instagrammer_id');
     }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+
+  
+    
   
 }

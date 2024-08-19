@@ -38,4 +38,26 @@ class Product extends Model
                     ->withPivot('size_id', 'quantity')
                     ->withTimestamps();
     }
+
+    public function echantillons()
+    {
+        return $this->hasMany(Echantillon::class);
+    }
+
+    public function instagrammer()
+    {
+        return $this->belongsTo(User::class, 'instagrammer_id');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    public function provider()
+    {
+        return $this->belongsTo(User::class, 'provider_id');
+    }
+
+   
 }

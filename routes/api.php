@@ -15,6 +15,7 @@ use App\Http\Controllers\BackOffice\UserController;
 use App\Http\Controllers\BackOffice\ProductController;
 use App\Http\Controllers\BackOffice\SizeController;
 use App\Http\Controllers\BackOffice\SubcategoryController;
+use App\Http\Controllers\EchantillonController;
 use App\Http\Controllers\FrontOffice\Instagrammer\ProductInstagrammerController;
 use App\Http\Controllers\FrontOffice\Instagrammer\InstagrammerController;
 use App\Http\Controllers\FrontOffice\Provider\ProductProviderController;
@@ -52,11 +53,9 @@ Route::controller(AuthController::class)->group(function () {
 
 //user
 Route::prefix('users')->group(function () {
-  Route::post('/reset-password-request', [PasswordResetRequestController::class, 'sendPasswordResetEmail']);
-  Route::post('/change-password', [ChangePasswordController::class, 'passwordResetProcess']);
+  
   Route::get('/user/{Role}',[UserController::class, 'getUsersByRole']);
   Route::get('/',[UserController::class, 'index']);
-  Route::post('/save',[UserController::class, 'store']); // méme methode  que register dans AuthController
   Route::get('/show/{id}',[UserController::class, 'show']);
   Route::delete('/destroy/{id}',[UserController::class, 'destroy']);
   Route::post('/update/{id}',[UserController::class, 'update']);
@@ -176,6 +175,12 @@ Route::prefix('providers')->group(function(){
   // Route::get('/getOrderByStatus',[ProviderController::class, 'getOrderByStatus']);
 
 
+});
+
+Route::prefix('echantillons')->middleware('auth')->group(function (){
+  Route::post('/echantillonRequest/{Productid}', [EchantillonController::class, 'requestEchantillon']);
+  Route::post('/echantillonsStatus/{id}', [EchantillonController::class, 'updateEchantillonStatus']);
+  Route::get('/forOwner', [EchantillonController::class, 'getEchantillonsRequestForOwner']);
 });
 
 

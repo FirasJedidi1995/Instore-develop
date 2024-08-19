@@ -4,14 +4,38 @@ namespace App\Http\Controllers\BackOffice;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class SubcategoryController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['role:admin|superadmin']);
+        $this->middleware(function ($request, $next) {
+            $user = Auth::user();
+            $user = User::find(Auth::id());
+            $method = $request->route()->getActionMethod();
+            $roles = $user->getRoleNames()->toArray(); // Get the user's roles as an array
+
+            // Define roles and method access logic
+            $allowedRolesForIndexAndShow = ['provider-intern', 'provider-extern'];
+            $allowedRolesForAllMethods = ['admin', 'superadmin'];
+
+            if ($method === 'index' || $method === 'show') {
+                if (array_intersect($roles, $allowedRolesForIndexAndShow) || array_intersect($roles, $allowedRolesForAllMethods)) {
+                    return $next($request);
+                }
+            } else {
+                if (array_intersect($roles, $allowedRolesForAllMethods)) {
+                    return $next($request);
+                }
+            }
+
+            // If access is denied
+            abort(403, 'Unauthorized');
+        });
     }
     public function index()
     {
