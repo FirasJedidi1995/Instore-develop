@@ -47,6 +47,7 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('verifCode', 'verifCode');
     Route::put('changePassword', 'changePassword');
     Route::put('updateUserPassword/{id}', 'updateUserPassword');
+    Route::post('updateSelfData','updateSelfData');
    
 });
 

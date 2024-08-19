@@ -501,6 +501,75 @@ public function forgetPassWord(Request $request)
      * @return \Illuminate\Http\JsonResponse
      */
 
+
+     public function updateSelfData(Request $request)
+{
+    
+    $user = Auth::user();
+    $user = User::find(Auth::id());
+    
+    $rules = [
+        'image' => 'nullable|image|max:2048',
+        'name' => 'nullable|string|max:255',
+        'email' => [
+            'nullable',
+            'string',
+            'email',
+            Rule::unique('users')->ignore($user->id),
+        ],
+        'phone' => ['nullable', 'regex:/^[0-9]{8}$/'],
+        'acountLink' => 'nullable|string',
+        'street' => 'nullable|string',
+        'city' => 'nullable|string',
+        'post_code' => ['nullable', 'regex:/^[0-9]{4}$/'],
+        'CIN' => ['nullable', 'regex:/^[0-9]{8}$/'],
+        'TAXNumber' => 'nullable|string',
+        'companyName' => 'nullable|string',
+        'companyUnderConstruction' => 'nullable|boolean',
+    ];
+
+    
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'errors' => $validator->errors(),
+            'status' => 400
+        ]);
+    }
+
+   
+    $userData = $validator->validated();
+    
+    
+    if ($request->hasFile('image')) {
+        
+        if ($user->image) {
+            $oldImagePath = public_path('users/') . basename($user->image);
+            if (file_exists($oldImagePath)) {
+                unlink($oldImagePath);
+            }
+        }
+
+       
+        $image = $request->file('image');
+        $imageName = time() . '.' . $image->getClientOriginalExtension();
+        $image->move(public_path('users'), $imageName);
+        $userData['image'] = asset('users/' . $imageName);
+    }
+
+   
+    $user->update($userData);
+
+    
+    return response()->json([
+        'message' => 'User data updated successfully',
+        'status' => 200
+    ]);
+}
+
+   
+     
      public function refresh()
      {
          $token = FacadesJWTAuth::getToken();
