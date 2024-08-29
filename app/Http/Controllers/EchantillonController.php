@@ -9,12 +9,7 @@ use Illuminate\Http\Request;
 class EchantillonController extends Controller
 {
 
-    // public function __construct()
-    // {
-    //     $this->middleware('role:provider-intern')->only('requestEchantillon');
-    //     $this->middleware('role:provider-extern')->only('updateEchantillonStatus');
-    //      $this->middleware('role:admin,provider-intern,provider-extern')->only('getEchantillonsRequestForOwner');
-    // }
+    
     public function __construct()
     {
         $this->middleware('auth:api')->only('requestEchantillon', 'updateEchantillonStatus', 'getEchantillonsRequestForOwner');
@@ -33,6 +28,15 @@ class EchantillonController extends Controller
     public function requestEchantillon($productId)
     {
         $user = auth()->user();
+
+        $existingRequest = Echantillon::where('product_id', $productId)
+        ->where('instagrammer_id', $user->id)
+        ->first();
+
+
+if ($existingRequest && $existingRequest->status !== 'REJECTED') {
+return response()->json(['message' => 'You have already requested a sample for this product.'], 403);
+}
         $product=Product::find($productId);
         $echantillon = Echantillon::create([
             'product_id' => $productId,
@@ -55,14 +59,9 @@ public function updateEchantillonStatus(Request $request, $id)
 
         $user = auth()->user();
 
-        $product = $echantillon->product;
+        //$product = $echantillon->product;
 
-        // Vérifier si l'utilisateur est le propriétaire du produit
-        // if ($product->admin_id !== $user->id && 
-        //     $product->instagrammer_id !== $user->id &&
-        //     $product->provider_id !== $user->id) {
-        //     return response()->json(['error' => 'Accès non autorisé'], 403);
-        // }
+       
         if($echantillon->product_owner_id !==$user->id){
             return response()->json(['error' => 'Accès non autorisé'], 403);
         }

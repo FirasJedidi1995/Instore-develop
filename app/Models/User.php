@@ -81,6 +81,12 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Product::class);
     }
 
+    public function store()
+{
+    return $this->hasOne(Store::class, 'instagrammer_id');
+}
+
+
 
   
     

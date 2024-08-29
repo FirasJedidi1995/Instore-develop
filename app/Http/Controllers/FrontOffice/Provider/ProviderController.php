@@ -39,102 +39,102 @@ class ProviderController extends Controller
         ]);
         
     } 
-    public function getEchantillon()
-    {
-        // Récupérer l'utilisateur connecté
-        $provider = Auth::user();
+    // public function getEchantillon()
+    // {
+    //     // Récupérer l'utilisateur connecté
+    //     $provider = Auth::user();
 
-        // Récupérer les échantillons des produits du fournisseur connecté
-        $echantillons = Echantillon::whereHas('product', function ($query) use ($provider) {
-            $query->where('provider_id', $provider->id);
-        })->get();
+    //     // Récupérer les échantillons des produits du fournisseur connecté
+    //     $echantillons = Echantillon::whereHas('product', function ($query) use ($provider) {
+    //         $query->where('provider_id', $provider->id);
+    //     })->get();
 
-        return response()->json([
-            'message' => 'List Echantillon!',
-            'status' => Response::HTTP_OK,
-            'data' => EchantillonResource::collection($echantillons)
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'List Echantillon!',
+    //         'status' => Response::HTTP_OK,
+    //         'data' => EchantillonResource::collection($echantillons)
+    //     ]);
+    // }
 
-    public function updateSelfData(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string',
-            'email' => [
-                'required',
-                'string',
-                Rule::unique('users'),
-                'email'
-            ],
-            'phone' => ['required', 'regex:/^[0-9]{8}$/'],
-            'street'=> 'nullable|string',
-            'city'=> 'nullable|string',
-            'post_code'=> ['nullable', 'regex:/^[0-9]{4}$/'],
-            'CIN'=> ['nullable', 'regex:/^[0-9]{8}$/'],
-            'TAXNumber'=> 'nullable|regex:/^[0-9]{8}$/',
-            'companyName'=> 'nullable|string',
-            'companyUnderConstruction'=> 'nullable|boolean',
-        ]);
+    // public function updateSelfData(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => 'required|string',
+    //         'email' => [
+    //             'required',
+    //             'string',
+    //             Rule::unique('users'),
+    //             'email'
+    //         ],
+    //         'phone' => ['required', 'regex:/^[0-9]{8}$/'],
+    //         'street'=> 'nullable|string',
+    //         'city'=> 'nullable|string',
+    //         'post_code'=> ['nullable', 'regex:/^[0-9]{4}$/'],
+    //         'CIN'=> ['nullable', 'regex:/^[0-9]{8}$/'],
+    //         'TAXNumber'=> 'nullable|regex:/^[0-9]{8}$/',
+    //         'companyName'=> 'nullable|string',
+    //         'companyUnderConstruction'=> 'nullable|boolean',
+    //     ]);
     
-        if ($validator->fails()) {
-            return response()->json([
-                'errors' => $validator->errors(),
-                "status" => 400
-            ]);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'errors' => $validator->errors(),
+    //             "status" => 400
+    //         ]);
+    //     }
     
-        $user = User::findOrFail(Auth::user()->id);
+    //     $user = User::findOrFail(Auth::user()->id);
     
-        if (is_null($user)) {
-            return response()->json(
-                [
-                    'message' => 'utilisateur introuvable',
-                    "status" => "404"
-                ]
-            );
-        }
+    //     if (is_null($user)) {
+    //         return response()->json(
+    //             [
+    //                 'message' => 'utilisateur introuvable',
+    //                 "status" => "404"
+    //             ]
+    //         );
+    //     }
     
-        $user->name = $request->name;
-        $user->phone = $request->phone;
-        $user->email = $request->email;
-        $user->street = $request->street;
-        $user->city = $request->city;
-        $user->post_code = $request->post_code;
-        $user->CIN = $request->CIN;
-        $user->companyName = $request->companyName;
-        $user->companyUnderConstruction = $request->companyUnderConstruction;
-        if ($request->companyUnderConstruction == false) {
-                $user->TAXNumber  = $request->TAXNumber;
-            } 
+    //     $user->name = $request->name;
+    //     $user->phone = $request->phone;
+    //     $user->email = $request->email;
+    //     $user->street = $request->street;
+    //     $user->city = $request->city;
+    //     $user->post_code = $request->post_code;
+    //     $user->CIN = $request->CIN;
+    //     $user->companyName = $request->companyName;
+    //     $user->companyUnderConstruction = $request->companyUnderConstruction;
+    //     if ($request->companyUnderConstruction == false) {
+    //             $user->TAXNumber  = $request->TAXNumber;
+    //         } 
      
     
-        $user->save();
+    //     $user->save();
     
-        return response()->json([
-            "message" => "Updated Successfully",
-            "status" => 200,
-        ]);
-    }
+    //     return response()->json([
+    //         "message" => "Updated Successfully",
+    //         "status" => 200,
+    //     ]);
+    // }
 
-    public function updateEchantillon(Request $request, $id)
-    {
-        $echantillon = Echantillon::find($id);
+    // public function updateEchantillon(Request $request, $id)
+    // {
+    //     $echantillon = Echantillon::find($id);
     
-        if (!$echantillon) {
-            return response()->json([
-                'message' => 'Echantillon not found',
-                'status' => Response::HTTP_NOT_FOUND
-            ]);
-        }
+    //     if (!$echantillon) {
+    //         return response()->json([
+    //             'message' => 'Echantillon not found',
+    //             'status' => Response::HTTP_NOT_FOUND
+    //         ]);
+    //     }
     
-        $echantillon->status = $request->status;
-        $echantillon->save();
+    //     $echantillon->status = $request->status;
+    //     $echantillon->save();
     
-        return response()->json([
-            'message' => "Echantillon status updated successfully",
-            "status" => Response::HTTP_OK
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => "Echantillon status updated successfully",
+    //         "status" => Response::HTTP_OK
+    //     ]);
+    // }
     public function sendProviderMessage(Request $request)
     {
         $rules = [
@@ -172,46 +172,46 @@ class ProviderController extends Controller
         ]);
        ; 
     }  
-        public function getOrdersByProvider()
-    {
-        // Supposons que l'utilisateur connecté est le fournisseur
-        $providerId = Auth::id();
+    //     public function getOrdersByProvider()
+    // {
+    //     // Supposons que l'utilisateur connecté est le fournisseur
+    //     $providerId = Auth::id();
 
-        // Récupérer les commandes dont les produits ont le provider_id correspondant
-        $orders = Order::whereHas('product', function ($query) use ($providerId) {
-            $query->where('provider_id', $providerId);
-        })->with('product')->get();
+    //     // Récupérer les commandes dont les produits ont le provider_id correspondant
+    //     $orders = Order::whereHas('product', function ($query) use ($providerId) {
+    //         $query->where('provider_id', $providerId);
+    //     })->with('product')->get();
 
-        return response()->json([
-            'message' => 'List Orders by Provider!',
-            'status' => 200,
-            'data' => $orders
-        ]);
-    }
+    //     return response()->json([
+    //         'message' => 'List Orders by Provider!',
+    //         'status' => 200,
+    //         'data' => $orders
+    //     ]);
+    // }
 
-    public function show($id)
-    {  
-     $orders = Order::find($id);
-    return new OrderResource($orders); 
-    }
+    // public function show($id)
+    // {  
+    //  $orders = Order::find($id);
+    // return new OrderResource($orders); 
+    // }
 
    
-    public function getListEchantillons()
-    {
-        $echantillons = Echantillon::where('provider_id', Auth::user()->id)->get();
-        return response()->json([
-            'message' => 'Echantillons data !',
-            "status" => Response::HTTP_OK,
-            "data" =>  EchantillonResource::collection($echantillons)
-        ]);
-       ; 
-    }  
+    // public function getListEchantillons()
+    // {
+    //     $echantillons = Echantillon::where('provider_id', Auth::user()->id)->get();
+    //     return response()->json([
+    //         'message' => 'Echantillons data !',
+    //         "status" => Response::HTTP_OK,
+    //         "data" =>  EchantillonResource::collection($echantillons)
+    //     ]);
+    //    ; 
+    // }  
 
-    public function showEchantillon($id)
-    {  
-     $echantillons = Echantillon::find($id);
-    return new EchantillonResource($echantillons); 
-    }
+    // public function showEchantillon($id)
+    // {  
+    //  $echantillons = Echantillon::find($id);
+    // return new EchantillonResource($echantillons); 
+    // }
 
     public function getOrderByStatus(Request $request)
 {

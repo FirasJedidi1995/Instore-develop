@@ -13,7 +13,7 @@ class Order extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'firstName', 
-        'secondName',
+        'lastName',
         'email',
         'phone',
         'city',
@@ -23,12 +23,14 @@ class Order extends Model
         'securityCode',
         'CVV',
         'quantity',
-        'TVA',
-        'shippingCost',
+        'reference',
         'payment',
         'totalPrice',
         'status',
         'product_id',
+        'color_id',
+        'size_id',
+        'store_id',
         'invoice_link'
     ];  
     
@@ -36,10 +38,13 @@ class Order extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 
     public function invoice()
     {
         return $this->hasOne(Invoice::class);
     }
 }
-

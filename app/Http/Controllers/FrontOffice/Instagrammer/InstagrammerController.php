@@ -12,6 +12,7 @@ use App\Http\Resources\ProductResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Echantillon;
 use App\Models\Message;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -100,16 +101,16 @@ class InstagrammerController extends Controller
         ]);
        
     } 
-    public function getStoreProducts()
-    {
-        $products = Store::where("instagrammer_id", "=", auth()->user()->id)->get();
-        return response()->json([
-            'message' => 'all Instagrammer products',
-            "status" => Response::HTTP_OK,
-            "data" =>  StoreResource::collection($products)
-        ]);
+    // public function getStoreProducts()
+    // {
+    //     $products = Store::where("instagrammer_id", "=", auth()->user()->id)->get();
+    //     return response()->json([
+    //         'message' => 'all Instagrammer products',
+    //         "status" => Response::HTTP_OK,
+    //         "data" =>  StoreResource::collection($products)
+    //     ]);
        
-    } 
+    // } 
     public function getProviderProducts()
     {
         $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->whereNotNull('provider_id')->get();
@@ -153,32 +154,32 @@ public function filterProducts(Request $request)
 
 
 
-    public function addEchantillon(Request $request)
-    {
-        $product = Product::find($request->product_id);
+    // public function addEchantillon(Request $request)
+    // {
+    //     $product = Product::find($request->product_id);
 
-        if (!$product) {
-            return response()->json([
-                'message' => 'Product not found',
-                'status' => Response::HTTP_NOT_FOUND
-            ]);
-        }
-        $echantillon = new Echantillon();
-        $echantillon->payment = $request->payment;
-        $echantillon->status = "PENDING";
-        $echantillon->product_id = $product->id;
-        $echantillon->instagrammer_id = Auth::user()->id;
-        $echantillon->provider_id  = $product->provider_id;
+    //     if (!$product) {
+    //         return response()->json([
+    //             'message' => 'Product not found',
+    //             'status' => Response::HTTP_NOT_FOUND
+    //         ]);
+    //     }
+    //     $echantillon = new Echantillon();
+    //     $echantillon->payment = $request->payment;
+    //     $echantillon->status = "PENDING";
+    //     $echantillon->product_id = $product->id;
+    //     $echantillon->instagrammer_id = Auth::user()->id;
+    //     $echantillon->provider_id  = $product->provider_id;
 
-        $echantillon->save();
+    //     $echantillon->save();
 
-        return response()->json([
-            'message' => "Successfully ",
-            "status" => Response::HTTP_CREATED,
-                "data" => new EchantillonResource($echantillon)
+    //     return response()->json([
+    //         'message' => "Successfully ",
+    //         "status" => Response::HTTP_CREATED,
+    //             "data" => new EchantillonResource($echantillon)
             
-        ]);
-    }
+    //     ]);
+    // }
 
     public function addProductProvider(Request $request){
 
@@ -237,5 +238,230 @@ public function filterProducts(Request $request)
             "data" => new MessageResource($messages)
         ]);
     }
+
+    public function createStore(Request $request)
+    {
+        $user = Auth::user();
+        $user = User::find(Auth::id());
+        //dd($user);
+
+        // Valider les données
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
+        ]);
+
+        
+        // Gérer le logo si fourni
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            $logoName = time() . '.' . $logo->getClientOriginalExtension();
+            $logo->move(public_path('stores/logos'), $logoName);
+            $validatedData['logo'] = asset('stores/logos/' . $logoName);
+        }
+
+       
+        $store = $user->store()->create($validatedData);
+
+        return response()->json(['store' => $store, 'message' => 'Store created successfully']);
+    }
+
+    public function deleteStore($id)
+{
+    $user = Auth::user();
+    $user = User::find(Auth::id());
+    $store = $user->store()->find($id);
+
+    if (!$store) {
+        return response()->json(['message' => 'Store not found or you are not authorized to delete this store'], 404);
+    }
+
+    
+    if ($store->logo) {
+        $logoPath = public_path(parse_url($store->logo, PHP_URL_PATH));
+        if (file_exists($logoPath)) {
+            unlink($logoPath);
+        }
+    }
+
+    $store->delete();
+
+    return response()->json(['message' => 'Store deleted successfully']);
+}
+
+public function getInstagrammerStore()
+{
+    $user = Auth::user();
+
+   
+    $store = $user->store;
+
+    if (!$store) {
+        return response()->json(['message' => 'No store found for this user'], 404);
+    }
+
+    return response()->json(['store' => $store]);
+}
+
+public function addProductToStore(Request $request, $productId)
+
+{
+    $user = Auth::user();
+
+    
+    $store = $user->store;
+
+    if (!$store) {
+        return response()->json(['message' => 'No store found for this user'], 404);
+    }
+
+    
+    $product = Product::findOrFail($productId);
+
+    
+    $salePrice = $request->input('sale_price');
+
+    
+    if ($salePrice < $product->priceSale || $salePrice < $product->priceFav || $salePrice > $product->priceMax) {
+        return response()->json([
+            'message' => 'Le prix de vente doit être supérieur à ' . $product->priceSale . ' et compris entre ' . $product->priceFav . ' et ' . $product->priceMax
+        ], 422); 
+    }
+
+    
+    $store->products()->attach($product, ['sale_price' => $salePrice]);
+
+    return response()->json(['message' => 'Produit ajouté avec succès au store!']);
+}
+
+
+public function getStoreProducts()
+    {
+
+        $user = Auth::user();
+
+    
+        $store = $user->store;
+    
+        if (!$store) {
+            return response()->json(['message' => 'No store found for this user'], 404);
+        }
+        $products = $store->products()->get();
+
+        $response = $products->map(function ($product) {
+            return [
+                'product_name' => $product->name,
+                'sale_price' => $product->pivot->sale_price,
+                'quantity' => $product->quantity,
+            ];
+        });
+
+        return response()->json($response);
+    }
+
+
+    public function removeProductFromStore( $productId)
+{
+    
+    $user = Auth::user();
+
+    $store = $user->store;
+
+    
+
+    
+    $product = Product::findOrFail($productId);
+
+   
+    if (!$store->products()->where('product_id', $productId)->exists()) {
+        return response()->json(['message' => 'Produit non trouvé dans ce store'], 404);
+    }
+
+    
+    $store->products()->detach($product);
+
+    return response()->json(['message' => 'Produit retiré avec succès du store!']);
+}
+
+
+public function updateProductInStore(Request $request, $productId)
+{
+    $user = Auth::user();
+
+    
+    $store = $user->store;
+
+    if (!$store) {
+        return response()->json(['message' => 'No store found for this user'], 404);
+    }
+
+    
+    $product = Product::findOrFail($productId);
+
+    
+    if (!$store->products()->where('product_id', $productId)->exists()) {
+        return response()->json(['message' => 'Produit non trouvé dans ce store'], 404);
+    }
+
+    
+    $salePrice = $request->input('sale_price');
+
+    
+    if ($salePrice < $product->priceSale || $salePrice < $product->priceFav || $salePrice > $product->priceMax) {
+        return response()->json([
+            'message' => 'Le prix de vente doit être supérieur à ' . $product->priceSale . ' et compris entre ' . $product->priceFav . ' et ' . $product->priceMax
+        ], 422);
+    }
+
+    
+    $store->products()->updateExistingPivot($productId, ['sale_price' => $salePrice]);
+
+    return response()->json(['message' => 'Prix de vente mis à jour avec succès!']);
+}
+public function getProductLink($productId)
+{
+    $user = Auth::user();
+    $store = $user->store;
+
+    if (!$store) {
+        return response()->json(['message' => 'No store found for this user'], 404);
+    }
+
+    $product = $store->products()->where('product_id', $productId)->first();
+
+    if (!$product) {
+        return response()->json(['message' => 'Produit non trouvé dans ce store'], 404);
+    }
+
+    // Générer le lien
+    $link = url('/store/' . $store->id . '/product/' . $product->id);
+
+    return response()->json(['link' => $link]);
+}
+
+public function getOrders()
+{
+    $user = Auth::user();
+
+    
+    if (!$user->store) {
+        return response()->json(['message' => 'L\'utilisateur n\'a pas de boutique associée.'], 404);
+    }
+
+    $storeId = $user->store->id; 
+
+    // Récupérer les commandes pour la boutique associée
+    $orders = Order::where('store_id', $storeId)->get();
+
+    // Vérifier si des commandes existent
+    if ($orders->isEmpty()) {
+        return response()->json(['message' => 'Aucun ordre trouvé.'], 404);
+    }
+
+    return response()->json($orders);
+}
+
+
     
 }

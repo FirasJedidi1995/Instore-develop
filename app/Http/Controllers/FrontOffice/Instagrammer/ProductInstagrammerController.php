@@ -54,7 +54,7 @@ class ProductInstagrammerController extends Controller
             'priceFav' => 'nullable|numeric|min:0',
             'priceMax' => 'nullable|numeric|min:0',
             'subcategory_id' => 'required|exists:subcategories,id',
-            'brand_id' => 'required|exists:brands,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
             'combinations' => 'nullable|array',
             'combinations.*.size' => 'nullable|string|max:255',
@@ -66,7 +66,14 @@ class ProductInstagrammerController extends Controller
         
         $validatedData = $request->validate($rules);
     
-
+        if (isset($validatedData['priceFav']) && $validatedData['priceFav'] <= $validatedData['priceSale']) {
+            return response()->json(['error' => 'Le prix favori doit être supérieur au prix de vente.'], 422);
+        }
+    
+        if (isset($validatedData['priceMax']) && $validatedData['priceMax'] <= $validatedData['priceFav']) {
+            return response()->json(['error' => 'Le prix maximum doit être supérieur au prix favori.'], 422);
+        }
+        
         $user = auth()->user();
         $reference = Str::random(8);
         $product = new Product();
@@ -78,7 +85,7 @@ class ProductInstagrammerController extends Controller
         $product->priceMax = $validatedData['priceMax'] ?? null;
         $product->reference = $reference;
         $product->subcategory_id = $validatedData['subcategory_id'];
-        $product->brand_id = $validatedData['brand_id'];
+        $product->brand_id = $validatedData['brand_id'] ?? null;
         $product->echantillon = $validatedData['echantillon'] ?? null;
         $product->instagrammer_id = $user->id;
         $product->save();
@@ -130,47 +137,6 @@ class ProductInstagrammerController extends Controller
     
 
     
-    
-
-
-    // en marche
-    // public function store(Request $request)
-    // {
-    //     $rules = [
-    //         'name' => 'required|string|max:255',
-    //         'description' => 'nullable|string',
-    //         'quantity' => 'required|integer|min:0',
-    //         'priceSale' => 'required|numeric|min:0',
-    //         'priceFav' => 'nullable|numeric|min:0',
-    //         'priceMax' => 'nullable|numeric|min:0',
-    //         'subcategory_id' => 'required|exists:subcategories,id',
-    //         'brand_id' => 'required|exists:brands,id',
-    //         'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
-    //     ];
-        
-    //     $validatedData = $request->validate($rules);
-    //     $user = auth()->user(); 
-    //     $reference = Str::random(8);
-    //     $product = new Product();
-    //     $product->name = $validatedData['name'];
-    //     $product->description = $validatedData['description'] ?? null;
-    //     $product->quantity = $validatedData['quantity'];
-    //     $product->priceSale = $validatedData['priceSale'];
-    //     $product->priceFav = $validatedData['priceFav'] ?? null;
-    //     $product->priceMax = $validatedData['priceMax'] ?? null;
-    //     $product->reference = $reference;
-    //     $product->subcategory_id = $validatedData['subcategory_id'];
-    //     $product->brand_id = $validatedData['brand_id'];
-    //     $product->echantillon = $validatedData['echantillon'] ?? null;
-    //     $product->admin_id = $user->id;
-    //     $product->save();
-        
-    
-    //     return response()->json($product, Response::HTTP_CREATED);
-    // }
-    
-
-
     public function show($id)
 {
     $user = auth()->user();

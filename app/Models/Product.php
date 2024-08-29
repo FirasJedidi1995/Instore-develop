@@ -59,5 +59,13 @@ class Product extends Model
         return $this->belongsTo(User::class, 'provider_id');
     }
 
-   
+    public function stores()
+    {
+        return $this->belongsToMany(Store::class)->withPivot('sale_price');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    } 
 }

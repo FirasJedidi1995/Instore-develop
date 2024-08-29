@@ -15,6 +15,7 @@ use App\Http\Controllers\BackOffice\UserController;
 use App\Http\Controllers\BackOffice\ProductController;
 use App\Http\Controllers\BackOffice\SizeController;
 use App\Http\Controllers\BackOffice\SubcategoryController;
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\EchantillonController;
 use App\Http\Controllers\FrontOffice\Instagrammer\ProductInstagrammerController;
 use App\Http\Controllers\FrontOffice\Instagrammer\InstagrammerController;
@@ -33,9 +34,7 @@ use App\Http\Controllers\InvoiceController;
 |
 */
 
-//Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-  //  return $request->user();
-//});
+
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login');
@@ -81,7 +80,7 @@ Route::prefix('subCategories')->group(function () {
   Route::put('/update/{id}', [SubcategoryController::class, 'update']);
   Route::delete('/delete/{id}', [SubcategoryController::class, 'destroy']);
   Route::get('/show/{id}',[SubcategoryController::class, 'show']);
-  //Route::get('filterSubcategory', [SubcategoryController::class, 'filterSubcategory']);
+  Route::post('/filterSubcategory', [SubcategoryController::class, 'filterSubcategory']);
 
 });
 
@@ -124,9 +123,8 @@ Route::prefix('products')->group(function () {
   Route::post('/update/{id}', [ProductController::class, 'update']);
   Route::delete('/delete/{id}', [ProductController::class, 'destroy']);
   Route::get('/show/{id}',[ProductController::class, 'show']);
-  //Route::get('filterProduct', [ProductController::class, 'filterProduct']);
+  Route::get('filterProduct', [Controller::class, 'filterProduct']);
   
-  //Route::post('/updateProductStatus/{id}', [ProductController::class, 'updateProductStatus']);
  
 
 
@@ -134,23 +132,29 @@ Route::prefix('products')->group(function () {
 //instagrammer
 
 Route::prefix('instagrammers')->group(function(){
-  Route::get('getInstagrammerProducts', [ProductInstagrammerController::class, 'getIstagrammerProducts']);
+  
 
   Route::get('products', [ProductInstagrammerController::class, 'index']);
   Route::post('/saveProduct', [ProductInstagrammerController::class, 'store']);
   Route::post('/updateProduct/{id}', [ProductInstagrammerController::class, 'update']);
   Route::delete('/deleteProduct/{id}', [ProductInstagrammerController::class, 'destroy']);
   Route::get('/showProduct/{id}',[ProductInstagrammerController::class, 'show']);
-  // Route::post('/addEchantillon', [InstagrammerController::class, 'addEchantillon']);
+
+  Route::get('getInstagrammerProducts', [ProductInstagrammerController::class, 'getIstagrammerProducts']);
   // Route::post('/addProductProvider', [InstagrammerController::class, 'addProductProvider']);
-  // Route::get('/getInstagrammerProducts', [InstagrammerController::class, 'getInstagrammerProducts']);
   // Route::post('/sendProviderMessage', [InstagrammerController::class, 'sendProviderMessage']);
-  // Route::post('updateSelfData',[InstagrammerController::class, 'updateSelfData']);
   Route::get('/getProviderProducts', [InstagrammerController::class, 'getProviderProducts']);
-  // Route::get('/filterProducts', [InstagrammerController::class, 'filterProducts']);
-  // Route::get('/getStoreProducts', [InstagrammerController::class, 'getStoreProducts']);
+ 
 
-
+  Route::post('create-store',[InstagrammerController::class,'createStore']);
+  Route::delete('delete-store/{storeId}',[InstagrammerController::class,'deleteStore']);
+  Route::get('/store',[InstagrammerController::class,'getInstagrammerStore']);
+  Route::post('/addProductToStore/{productId}', [InstagrammerController::class, 'addProductToStore'])->middleware('auth');
+  Route::get('/getStoreProducts',[InstagrammerController::class,'getStoreProducts']);
+  Route::post('/removeProductFromStore/{productId}',[InstagrammerController::class,'removeProductFromStore']);
+  Route::post('/updateProductInStore/{productId}',[InstagrammerController::class,'updateProductInStore']);
+  Route::get('/getProductLink/{ProductId}',[InstagrammerController::class,'getProductLink']);
+  Route::get('/getOrders',[InstagrammerController::class,'getOrders']);
 });
 
 //providers
@@ -160,25 +164,16 @@ Route::prefix('providers')->group(function(){
   Route::get('/showProduct/{id}',[ProductProviderController::class, 'show']);
   Route::post('/saveProduct', [ProductProviderController::class, 'store']);
   Route::post('/updateProduct/{id}', [ProductProviderController::class, 'update']);
-  Route::post('/updateEchantillon/{id}', [ProviderController::class, 'updateEchantillon']);
-  Route::get('/getProviderProducts', [ProviderController::class, 'getProviderProducts']);
   Route::delete('/delete/{id}',[ProductProviderController::class,'destroy']);
-  //Route::post('updateSelfData',[ProviderController::class, 'updateSelfData']);
+  Route::get('/getProviderProducts', [ProviderController::class, 'getProviderProducts']);
+   // Route::get('/getMessagesByAdmin',[ProviderController::class, 'getMessagesByAdmin']);
   //Route::post('/sendMessage', [ProviderController::class, 'sendProviderMessage']);
-  // Route::get('/colors',[ProductProviderController::class, 'colors']);
-  // Route::get('/sizes',[ProductProviderController::class, 'sizes']);
-  // Route::get('/getOrdersByProvider',[ProviderController::class, 'getOrdersByProvider']);
-  // Route::get('/show/{id}',[ProviderController::class, 'show']);
-  // Route::get('/getUserData',[ProviderController::class, 'getUserData']);
-  // Route::get('/getMessagesByAdmin',[ProviderController::class, 'getMessagesByAdmin']);
-  // Route::get('/echantillons',[ProviderController::class, 'getListEchantillons']);
-  // Route::get('/showEchantillon/{id}',[ProviderController::class, 'showEchantillon']);
-  // Route::get('/getOrderByStatus',[ProviderController::class, 'getOrderByStatus']);
-
+   //Route::get('/getUserData',[ProviderController::class, 'getUserData']);
+ 
 
 });
-
-Route::prefix('echantillons')->middleware('auth')->group(function (){
+//Echantillons
+  Route::prefix('echantillons')->middleware('auth')->group(function (){
   Route::post('/echantillonRequest/{Productid}', [EchantillonController::class, 'requestEchantillon']);
   Route::post('/echantillonsStatus/{id}', [EchantillonController::class, 'updateEchantillonStatus']);
   Route::get('/forOwner', [EchantillonController::class, 'getEchantillonsRequestForOwner']);
@@ -199,8 +194,6 @@ Route::prefix('message')->group(function () {
 //orders
 Route::prefix('orders')->group(function () {
   Route::get('/', [OrderController::class, 'index']);
-  Route::post('/save', [OrderController::class, 'store']);
-  Route::post('/update/{id}', [OrderController::class, 'update']);
   Route::delete('/delete/{id}', [OrderController::class, 'destroy']);
   Route::get('/show/{id}',[OrderController::class, 'show']);
   Route::post('/updateOrderStatus/{id}', [OrderController::class, 'updateOrderStatus']);
@@ -213,11 +206,10 @@ Route::prefix('orders')->group(function () {
 Route::prefix('clients')->group(function(){
   Route::get('/getProductById/{id}', [ClientController::class, 'getProductById']);
   Route::get('/getOrderById/{id}', [ClientController::class, 'getOrderById']);
-  Route::post('/addOrder', [ClientController::class, 'addOrder']);
-  Route::post('/updateOrder/{id}', [ClientController::class, 'updateOrder']);
+  Route::post('/addOrder/{storeId}/{productId}', [ClientController::class, 'addOrder']);
   Route::post('/cancelOrder/{id}', [ClientController::class, 'cancelOrder']);
   Route::post('/confirmOrder/{id}', [ClientController::class, 'confirmOrder']);
 
 });
 
-Route::get('generate-invoice/{orderId}', [InvoiceController::class, 'generateInvoice']);
+//Route::get('generate-invoice/{orderId}', [InvoiceController::class, 'generateInvoice']);

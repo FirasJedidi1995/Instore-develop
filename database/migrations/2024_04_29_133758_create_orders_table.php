@@ -22,20 +22,18 @@ return new class extends Migration
             $table->string('street');  
             $table->integer('post_code');
             $table->string('reference')->unique();
-            $table->integer('cardNumber')->nullable();
-            $table->integer('securityCode')->nullable();
-            $table->string('CVV')->nullable();
-            $table->string('color')->nullable();
-            $table->string('size')->nullable();
+            $table->string('cardNumber',255)->nullable(); // Considérez encryptation
+            $table->string('securityCode',255)->nullable(); // Considérez encryptation
+            $table->string('CVV',255)->nullable(); // Considérez encryptation
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete()->after('CVV');
+            $table->foreignId('color_id')->nullable()->constrained('colors')->nullOnDelete()->after('size_id');
             $table->string('invoice_link')->nullable();
             $table->integer('quantity');
-            $table->float('TVA');
-            $table->float('shippingCost');
-            $table->float('totalProduct')->default(0);
             $table->float('totalPrice')->default(0);
             $table->enum('payment', ['Credit','CashOnDelivery']);
             $table->enum('status', ['PENDING', 'SUCCESS','REFUSED','CANCEL','INPROGRESS'])->default('PENDING');
             $table->foreignId('product_id')->nullable()->constrained('products')->cascadeOnDelete();
+            $table->foreignId('store_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

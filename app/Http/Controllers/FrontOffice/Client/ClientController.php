@@ -7,13 +7,19 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Http\Resources\ProductResource;
 use App\Mail\OrderConfirmation;
+use App\Models\Color;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Size;
+use App\Models\Store;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str; 
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File; // Import the File facade
 
 
 class ClientController extends Controller
@@ -38,212 +44,216 @@ class ClientController extends Controller
         return new OrderResource($order);
     }
 
-    public function addOrder(Request $request)
-    {
-        $rules = [
-            'firstName' => 'required|string',
-            'lastName' => 'required|string',
-            'email' => 'required|email',
-            'phone' => ['required', 'regex:/^[0-9]{8}$/'],
-            'color' => 'nullable|string',
-            'size' => 'nullable|string',
-            'city' => 'required|string',
-            'street' => 'required|string',
-            'post_code' => ['required', 'regex:/^[0-9]{4}$/'],
-            'cardNumber' => 'nullable|numeric',
-            'securityCode' => ['nullable', 'regex:/^[0-9]{4}$/'],
-            'CVV' => 'nullable|numeric',
-            'quantity' => [
-                'required',
-                'integer',
-                function ($attribute, $value, $fail) use ($request) {
-                    $remainingQuantity = Product::where('id', $request->input('product_id'))
-                        ->value('quantity');
-                    if ($value > $remainingQuantity) {
-                        $fail($attribute . ' must be less than ' . $remainingQuantity);
-                    }
-                },
-            ],
-            'payment' => ['required', 'in:Credit,CashOnDelivery'],
-            //'status' => ['required', 'in:SUCCESS,REFUSED,PENDING,CANCEL,INPROGRESS'],
-            "product_id" => "required|exists:products,id",
-        ];
-        $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                $validator->errors(),
-                "status" => 400
-            ]);
-        }
-        $product = Product::findOrFail($request->product_id);
-        $totalProduct = $request->quantity * $product->priceSale;
+    public function addOrder(Request $request, $storeId, $productId)
+{
+    // Récupérer le produit et vérifier s'il a des tailles ou des couleurs
+    $store = Store::find($storeId);
+    $product = $store->products()->where('product_id', $productId)->firstOrFail();
 
-        // Calculer la TVA comme 19% du prix du produit
-        $TVA = $product->priceSale * 0.19;
-        $totalPrice = $totalProduct+$TVA;
+    $hasSizes = $product->sizes()->exists();
+    $hasColors = $product->colors()->exists();
 
-        // Ajouter le shippingCost de 6 au totalPrice
-         $totalPrice += 6;
-       
-        $orders = new Order();
-        $orders->firstName  = $request->firstName;
-        $orders->lastName  = $request->lastName;
-        $orders->email  = $request->email;
-        $orders->reference = str::random(8);
-        $orders->city  = $request->city;
-        $orders->street  = $request->street;
-        $orders->color  = $request->color;
-        $orders->size  = $request->size;
-        $orders->phone  = $request->phone;
-        $orders->city  = $request->city;
-        $orders->post_code  = $request->post_code;
-        $orders->cardNumber  = $request->cardNumber;
-        $orders->securityCode  = $request->securityCode;
-        $orders->CVV  = $request->CVV;
-        $orders->quantity  = $request->quantity;
-        $orders->shippingCost  = 6;
-        $orders->TVA = 19;
-        $orders->payment  = $request->payment;
-        $orders->totalProduct  = $totalProduct;
-        $orders->totalPrice  = $totalPrice;
-        //$orders->status  = $request->status;
-        $orders->product_id  = $request->product_id;
-        $orders->save();
-
-         // Mise à jour de la quantité du produit
-         $product->quantity -= $request->quantity;
-         $product->save();
-         $OrderProduct = [
-            'order' =>$orders,
-            'product' => Product::find($orders->product_id)
-         ];
-         Mail::to($request->email)->send(new OrderConfirmation($orders));
-         $pdf = Pdf::loadView('invoice', compact('OrderProduct'));
-
-    // Définir le chemin de stockage
-    $fileName = $orders->id . '_invoice.pdf';
-    $filePath = public_path('storage/invoices/' . $fileName);
-
-    // Sauvegarder le fichier PDF
-    $pdf->save($filePath);
-
-    // Mettre à jour le lien de la facture dans la commande
-    $orders->invoice_link = asset('storage/invoices/' . $fileName);
-    $orders->save();
+    // Valider les données de la requête
+    $request->validate([
+        'quantity' => 'required|integer|min:1',
+        'firstName' => 'required|string|max:255',
+        'lastName' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'required|string|max:20',
+        'city' => 'required|string|max:255',
+        'street' => 'required|string|max:255',
+        'post_code' => 'required|integer',
+        'payment' => 'required|in:Credit,CashOnDelivery',
+        'color_id' => $hasColors ? 'required|exists:colors,id' : 'nullable',
+        'size_id' => $hasSizes ? 'required|exists:sizes,id' : 'nullable',
+        'cardNumber' => 'required_if:payment,Credit|digits_between:9,12',
+        'securityCode' => 'required_if:payment,Credit|digits:4',
+        'CVV' => 'required_if:payment,Credit|digits:3',
+    ]);
 
    
-         return response()->json([
-            'message' => 'Order created!',
-            "status" => Response::HTTP_CREATED,
-            "data" => new OrderResource($orders)
-        ]);
-    }
-    public function show($id)
-    {
-        $orders = Order::find($id);
-        return response()->json($orders);
-    }
-    public function updateOrder(Request $request, $id)
-    {
-        $rules = [
-            'firstName' => 'string',
-            'lastName' => 'string',
-            'email' => 'email',
-            'phone' => ['regex:/^[0-9]{8}$/'],
-            'color' => 'nullable|string',
-            'size' => 'nullable|string',
-            'city' => 'string',
-            'street' => 'string',
-            'post_code' => ['regex:/^[0-9]{4}$/'],
-            'cardNumber' => 'nullable|numeric',
-            'securityCode' => ['nullable', 'regex:/^[0-9]{4}$/'],
-            'CVV' => 'nullable|numeric',
-            'quantity' => [
-                'integer',
-                function ($attribute, $value, $fail) use ($request) {
-                    $remainingQuantity = Product::where('id', $request->input('product_id'))
-                        ->value('quantity');
-                    if ($value > $remainingQuantity) {
-                        $fail($attribute . ' must be less than ' . $remainingQuantity);
-                    }
-                },
-            ],
-            'payment' => ['in:Credit,CashOnDelivery'],
-            "product_id" => "exists:products,id",
-            //'status' => ['in:SUCCESS,REFUSED,PENDING,CANCEL,INPROGRESS'],
-        ];
-           $validator = Validator::make($request->all(), $rules);
-        if ($validator->fails()) {
-            return response()->json([
-                $validator->errors(),
-                "status" => 400
-            ]);
+
+    // Vérification de la disponibilité de la quantité
+    if ($hasSizes || $hasColors) {
+        $productSizeColor = $product->sizes()
+            ->wherePivot('color_id', $request->input('color_id'))
+            ->where('size_id', $request->input('size_id'))
+            ->first();
+
+        if (!$productSizeColor || $productSizeColor->pivot->quantity < $request->input('quantity')) {
+            return response()->json(['message' => 'La quantité demandée pour cette combinaison taille/couleur n\'est pas disponible'], 400);
         }
-        // Trouver la commande à mettre à jour
-        $orders = Order::findOrFail($id);
 
-        // Vérifier si la commande existe
-        if (!$orders) {
-            return response()->json(['message' => 'order non trouvée'], 404);
+        // Mise à jour de la quantité disponible
+        $productSizeColor->pivot->quantity -= $request->input('quantity');
+        
+        $productSizeColor->pivot->save();
+    } else {
+        if ($product->quantity < $request->input('quantity')) {
+            return response()->json(['message' => 'La quantité demandée pour ce produit n\'est pas disponible'], 400);
         }
-        $product = Product::findOrFail($request->product_id);
-        $totalPrice = $request->quantity * $product->priceSale;
 
-        // Calculer la TVA comme 7% du prix du produit
-        $TVA = $product->priceSale * 0.07;
-        $totalPrice += $TVA;
+        // Mise à jour de la quantité disponible
+        $product->quantity -= $request->input('quantity');
+        
+    }
+    $totalPrice = $product->pivot->sale_price * $request->input('quantity');
 
-        // Ajouter le shippingCost de 6 au totalPrice
-        $totalPrice += 6;
-        $quantityDifference = $request->quantity - $orders->quantity;
+    // Création de la commande
+    $order = Order::create([
+        'firstName' => $request->input('firstName'),
+        'lastName' => $request->input('lastName'),
+        'email' => $request->input('email'),
+        'phone' => $request->input('phone'),
+        'city' => $request->input('city'),
+        'street' => $request->input('street'),
+        'post_code' => $request->input('post_code'),
+        'reference' => Str::random(8),
+        'quantity' => $request->input('quantity'),
+        'totalPrice' => $totalPrice,
+        'payment' => $request->input('payment'),
+        'status' => 'PENDING',
+        'product_id' => $productId,
+        'store_id' => $storeId,
+        'color_id' => $hasColors ? $request->input('color_id') : null,
+        'size_id' => $hasSizes ? $request->input('size_id') : null,
+        'cardNumber' => $request->has('cardNumber') ? encrypt($request->cardNumber) : null,
+        'securityCode' => $request->has('securityCode') ? encrypt($request->securityCode) : null,
+        'CVV' => $request->has('CVV') ? encrypt($request->CVV) : null,
+    ]);
 
-        $orders->firstName  = $request->firstName;
-        $orders->lastName  = $request->lastName;
-        $orders->email  = $request->email;
-        $orders->phone  = $request->phone;
-        $orders->color  = $request->color;
-        $orders->size  = $request->size;
-        $orders->city  = $request->city;
-        $orders->street  = $request->street;
-        $orders->post_code  = $request->post_code;
-        $orders->cardNumber  = $request->cardNumber;
-        $orders->securityCode  = $request->securityCode;
-        $orders->CVV  = $request->CVV;
-        $orders->quantity  = $request->quantity;
-        $orders->shippingCost  = 6;
-        $orders->TVA = $TVA;
-        $orders->payment  = $request->payment;
-        $orders->product_id  = $request->product_id;
-        $orders->totalPrice  = $totalPrice;
+    // Sauvegarder le produit
+    $product->save();
 
-        $orders->save();
+    // Envoi de l'email de confirmation
+    Mail::to($request->email)->send(new OrderConfirmation($order));
 
-         // Mise à jour de la quantité du produit
-         $product->quantity -= $quantityDifference;
-         $product->save();
-        // Mettre à jour les champs de la commande
-        $orders->save();
-        $OrderProduct = [
-            'order' =>$orders,
-            'product' => Product::find($orders->product_id)
-         ];
-         Mail::to($request->email)->send(new OrderConfirmation($orders));
-         $pdf = Pdf::loadView('invoice', compact('OrderProduct'));
+    // Génération du fichier PDF
+    $OrderProduct = [
+        'order' => $order,
+        'product' => Product::find($order->product_id),
+    ];
+    $pdf = Pdf::loadView('invoice', compact('OrderProduct'));
 
-    // Définir le chemin de stockage
-    $fileName = $orders->id . '_invoice.pdf';
-    $filePath = public_path('storage/invoices/' . $fileName);
+    $fileName = $order->id . '_invoice.pdf';
+    $directoryPath = public_path('invoices');
+    if (!File::exists($directoryPath)) {
+        File::makeDirectory($directoryPath, 0755, true);
+    }
+    $filePath = $directoryPath . '/' . $fileName;
 
-    // Sauvegarder le fichier PDF
+    // Sauvegarde du fichier PDF
     $pdf->save($filePath);
+    $order->update(['invoice_link' => $filePath]);
 
-    // Mettre à jour le lien de la facture dans la commande
-    $orders->invoice_link = asset('storage/invoices/' . $fileName);
-    $orders->save();
+    return response()->json([
+        'message' => 'Order created!',
+        "status" => Response::HTTP_CREATED,
+        "data" => $order
+    ]);
+}
 
-        // Retourner la commande mise à jour
-        return response()->json($orders);
-    }
+
+    // public function addOrder(Request $request,$storeId,$productId)
+    // {
+    //     // dd($storeId);
+    //     $request->validate([
+    //         'quantity' => 'required|integer|min:1',
+    //         'firstName' => 'required|string|max:255',
+    //         'lastName' => 'required|string|max:255',
+    //         'email' => 'required|email|max:255',
+    //         'phone' => 'required|string|max:20',
+    //         'city' => 'required|string|max:255',
+    //         'street' => 'required|string|max:255',
+    //         'post_code' => 'required|integer',
+    //         'payment' => 'required|in:Credit,CashOnDelivery',
+    //         'color_id' => 'required|exists:colors,id',
+    //         'size_id' => 'required|exists:sizes,id',
+    //         'cardNumber' => 'required_if:payment,Credit|digits_between:9,12', // Card number validation
+    //         'securityCode' => 'required_if:payment,Credit|digits:4',
+    //         'CVV'=>'required_if:payment,Credit|digits:3'
+            
+    //     ]);
+
+        
+    //     //  dd($request);
+    //     $store= Store::find($storeId);
+    //     $product=$store->products()->where('product_id',$productId)->firstOrFail();
+    //     //dd($store);
+
+        
+    //     $productSizeColor = $product->sizes()
+    //     ->wherePivot('color_id', $request->input('color_id'))
+    //     ->where('size_id', $request->input('size_id'))
+    //     ->first();
+    
+
+    //     //dd( $productSizeColor->pivot->quantity );
+    //     if (!$productSizeColor || $productSizeColor->pivot->quantity < $request->input('quantity')) {
+    //         return response()->json(['message' => 'La quantité demandée pour cette combinaison taille/couleur n\'est pas disponible'], 400);
+    //     }
+
+    //     //dd($product->pivot->sale_price);
+    //     $totalPrice = $product->pivot->sale_price * $request->input('quantity');
+    //     //dd($productSizeColor->pivot->color_id);
+        
+    //     $order = Order::create([
+    //         'firstName' => $request->input('firstName'),
+    //         'lastName' => $request->input('lastName'),
+    //         'email' => $request->input('email'),
+    //         'phone' => $request->input('phone'),
+    //         'city' => $request->input('city'),
+    //         'street' => $request->input('street'),
+    //         'post_code' => $request->input('post_code'),
+    //         'reference' => Str::random(8),
+    //         'quantity' => $request->input('quantity'),
+    //         'totalPrice' => $totalPrice,
+    //         'payment' => $request->input('payment'),
+    //         'status' => 'PENDING',
+    //         'product_id' => $productId,
+    //         'store_id' => $storeId,
+    //         'color_id' => $productSizeColor->pivot->color_id,
+    //         'size_id' => $productSizeColor->pivot->size_id,
+    //         'cardNumber' => encrypt($request->cardNumber),
+    //         'securityCode' => encrypt($request->securityCode),
+    //         'CVV' => encrypt($request->CVV),
+    //     ]);
+
+    //     // Mettre à jour la quantité disponible
+    //     $productSizeColor->pivot->quantity -= $request->input('quantity');
+    //     $product->quantity-=$request->input('quantity');
+    //     $productSizeColor->pivot->save();
+    //     $product->save();
+    //     $OrderProduct = [
+    //         'order' =>$order,
+    //         'product' => Product::find($order->product_id)
+    //      ];
+
+    //     Mail::to($request->email)->send(new OrderConfirmation($order));
+    //    // dd($OrderProduct);
+    //    $pdf = Pdf::loadView('invoice', compact('OrderProduct'));
+
+    //     $fileName = $order->id . '_invoice.pdf';
+    //     $directoryPath = public_path('invoices');
+
+    //     // Create the directory if it doesn't exist
+    //     if (!File::exists($directoryPath)) {
+    //         File::makeDirectory($directoryPath, 0755, true);
+    //     }
+
+    //     $filePath = $directoryPath . '/' . $fileName;
+
+    //     // Sauvegarder le fichier PDF
+    //     $pdf->save($filePath);
+    //     $order->update(['invoice_link' => $filePath]);
+    //      return response()->json([
+    //         'message' => 'Order created!',
+    //         "status" => Response::HTTP_CREATED,
+    //         "data" =>$order
+    //     ]);
+    // }
+
+
     public function cancelOrder($id)
 {
     $order = Order::find($id);
@@ -271,19 +281,6 @@ public function confirmOrder( $id)
 
     return response()->json(['message' => 'Order delivered'], 200);
 }
-// public function sendEmail(Request $request){
-//     // If email does not exist
-//     if(!$this->validEmail($request->email)) {
-//         return response()->json([
-//             'message' => 'Email does not exist.'
-//         ], Response::HTTP_NOT_FOUND);
-//     } else {
-//         // If email exists
-//         $this->sendMail($request->email);
-//         return response()->json([
-//             'message' => 'Check your inbox, we have sent a link to reset email.'
-//         ], Response::HTTP_OK);            
-//     }
-// }
+
     
 }

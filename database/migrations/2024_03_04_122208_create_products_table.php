@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('priceFav', 8, 2)->nullable();
             $table->decimal('priceMax', 8, 2)->nullable();
             $table->string('reference')->unique(); 
-            $table->foreignId('brand_id')->constrained()->onDelete('cascade');
+            $table->foreignId('brand_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('subcategory_id')->constrained()->onDelete('cascade');
             $table->foreignId('provider_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('instagrammer_id')->nullable()->constrained('users')->onDelete('set null');

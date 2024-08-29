@@ -34,9 +34,9 @@ class OrderResource extends JsonResource
             'payment' => $this->payment,
             'invoice_link' =>$this->invoice_link,
             'product_id' => new ProductResource(Product::find($this->product_id)),
-            'shippingCost' => $this->shippingCost,
-            'TVA' => $this->TVA,
-            'totalProduct'=> $this->totalProduct,
+            //'shippingCost' => $this->shippingCost,
+            //'TVA' => $this->TVA,
+            //'totalProduct'=> $this->totalProduct,
             'totalPrice'=> $this->totalPrice
         ];
     }

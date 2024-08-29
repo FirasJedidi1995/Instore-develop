@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\BackOffice;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -38,10 +39,12 @@ class CategoryController extends Controller
             abort(403, 'Unauthorized');
         });
     }
-    public function index(){
-        $categories=Category::all();
-        return response($categories,200);
-    }
+    public function index()
+{
+    $categories = Category::all();
+    return response()->json(CategoryResource::collection($categories), 200);
+}
+
 
     
     public function store(Request $request)
@@ -55,7 +58,7 @@ class CategoryController extends Controller
 
     $category = Category::create($request->all());
 
-    return response($category, 201);
+    return response()->json($category, 201);
 }
 
 public function show($id){
