@@ -144,7 +144,7 @@ public function filterProducts(Request $request)
         return response()->json(['error' => 'Le paramètre de catégorie est obligatoire.'], 400);
     }
 
-    // Recherche des produits en fonction de la catégorie et du provider_id
+  
     $products = Product::where('category', $category)
                         ->whereNotNull('provider_id')
                         ->get();
@@ -305,7 +305,6 @@ public function getInstagrammerStore()
 }
 
 public function addProductToStore(Request $request, $productId)
-
 {
     $user = Auth::user();
 
@@ -313,27 +312,32 @@ public function addProductToStore(Request $request, $productId)
     $store = $user->store;
 
     if (!$store) {
-        return response()->json(['message' => 'No store found for this user'], 404);
+        return response()->json(['message' => 'Aucun store trouvé pour cet utilisateur'], 404);
     }
 
     
     $product = Product::findOrFail($productId);
 
     
-    $salePrice = $request->input('sale_price');
+    if ($store->products()->where('product_id', $productId)->exists()) {
+        return response()->json(['message' => 'Le produit est déjà présent dans ce store'], 409);
+    }
 
     
+    $salePrice = $request->input('sale_price');
+
     if ($salePrice < $product->priceSale || $salePrice < $product->priceFav || $salePrice > $product->priceMax) {
         return response()->json([
             'message' => 'Le prix de vente doit être supérieur à ' . $product->priceSale . ' et compris entre ' . $product->priceFav . ' et ' . $product->priceMax
         ], 422); 
     }
 
-    
+   
     $store->products()->attach($product, ['sale_price' => $salePrice]);
 
     return response()->json(['message' => 'Produit ajouté avec succès au store!']);
 }
+
 
 
 public function getStoreProducts()
@@ -351,6 +355,7 @@ public function getStoreProducts()
 
         $response = $products->map(function ($product) {
             return [
+                'product_id'=>$product->id,
                 'product_name' => $product->name,
                 'sale_price' => $product->pivot->sale_price,
                 'quantity' => $product->quantity,

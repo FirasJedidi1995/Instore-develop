@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 
@@ -27,6 +28,33 @@ class ProductController extends Controller
         return response()->json($products, Response::HTTP_OK);
     }
 
+    public function indexPending()
+{
+    $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
+                        ->where('approval_status', 'pending')
+                        ->get();
+
+    return response()->json($products, Response::HTTP_OK);
+}
+public function indexApproved()
+{
+    $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
+                        ->where('approval_status', 'approved')
+                        ->get();
+
+    return response()->json($products, Response::HTTP_OK);
+}
+
+public function indexRefused()
+{
+    $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
+                        ->where('approval_status', 'refused')
+                        ->get();
+
+    return response()->json($products, Response::HTTP_OK);
+}
+
+
 
     public function store(Request $request)
 {
@@ -35,8 +63,6 @@ class ProductController extends Controller
         'description' => 'nullable|string',
         'quantity' => 'nullable|integer|min:0|required_without_all:combinations',
         'priceSale' => 'required|numeric|min:0',
-        'priceFav' => 'nullable|numeric|min:0',
-        'priceMax' => 'nullable|numeric|min:0',
         'subcategory_id' => 'required|exists:subcategories,id',
         'brand_id' => 'nullable|exists:brands,id',
         'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
@@ -50,13 +76,13 @@ class ProductController extends Controller
 
     $validatedData = $request->validate($rules);
 
-    if (isset($validatedData['priceFav']) && $validatedData['priceFav'] <= $validatedData['priceSale']) {
-        return response()->json(['error' => 'Le prix favori doit être supérieur au prix de vente.'], 422);
-    }
+    // if (isset($validatedData['priceFav']) && $validatedData['priceFav'] <= $validatedData['priceSale']) {
+    //     return response()->json(['error' => 'Le prix favori doit être supérieur au prix de vente.'], 422);
+    // }
 
-    if (isset($validatedData['priceMax']) && $validatedData['priceMax'] <= $validatedData['priceFav']) {
-        return response()->json(['error' => 'Le prix maximum doit être supérieur au prix favori.'], 422);
-    }
+    // if (isset($validatedData['priceMax']) && $validatedData['priceMax'] <= $validatedData['priceFav']) {
+    //     return response()->json(['error' => 'Le prix maximum doit être supérieur au prix favori.'], 422);
+    // }
 
     $user = auth()->user();
     $reference = Str::random(8);
@@ -66,8 +92,6 @@ class ProductController extends Controller
     $product->description = $validatedData['description'] ?? null;
     $product->quantity = $validatedData['quantity'] ?? 0;
     $product->priceSale = $validatedData['priceSale'];
-    $product->priceFav = $validatedData['priceFav'] ?? null;
-    $product->priceMax = $validatedData['priceMax'] ?? null;
     $product->reference = $reference;
     $product->subcategory_id = $validatedData['subcategory_id'];
     $product->brand_id = $validatedData['brand_id'] ?? null;
@@ -146,8 +170,6 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'quantity' => 'nullable|integer|min:0|required_without_all:combinations',
             'priceSale' => 'sometimes|required|numeric|min:0',
-            'priceFav' => 'nullable|numeric|min:0',
-            'priceMax' => 'nullable|numeric|min:0',
             'subcategory_id' => 'sometimes|required|exists:subcategories,id',
             'brand_id' => 'sometimes|required|exists:brands,id',
             'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
@@ -165,9 +187,6 @@ class ProductController extends Controller
         $product->name = array_key_exists('name', $validatedData) ? $validatedData['name'] : $product->name;
         $product->description = $validatedData['description'] ?? null;
         $product->priceSale = $validatedData['priceSale'];
-        $product->priceFav = $validatedData['priceFav'] ?? null;
-        $product->priceMax = $validatedData['priceMax'] ?? null;
-        //$product->status = $validatedData['status'] ?? null;
         $totalQuantity = 0;
     
         if (!empty($validatedData['combinations'])) {
@@ -231,4 +250,63 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Product deleted successfully'], Response::HTTP_OK);
     }
+
+    public function setFinalPrices(Request $request, $ProductId)
+{
+    // Validation des données d'entrée
+    $rules = [
+        'gain' => 'required|numeric|min:1', 
+    ];
+    
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    $product = Product::find($ProductId);
+
+    if (!$product) {
+        return response()->json(['error' => 'Produit non trouvé'], 404);
+    }
+
+    
+    $gain = $request->input('gain');
+    $product->priceFav = $product->priceSale * (1 + $gain / 100);
+
+    
+    $product->priceMax = $product->priceFav * 1.5;
+
+    $product->save();
+
+    return response()->json(['message' => 'Prix final mis à jour avec succès', 'product' => $product], 200);
+}
+public function changeApprovalStatus(Request $request, $id)
+{
+    
+    $rules = [
+        'approval_status' => 'required|in:pending,approved,refused',
+    ];
+    
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    
+    $product = Product::find($id);
+
+    if (!$product) {
+        return response()->json(['error' => 'Produit non trouvé'], 404);
+    }
+
+    
+    $product->approval_status = $request->input('approval_status');
+    $product->save();
+
+    return response()->json(['message' => 'Statut d\'approbation mis à jour avec succès', 'product' => $product], 200);
+}
+
+
 }

@@ -123,7 +123,12 @@ Route::prefix('products')->group(function () {
   Route::post('/update/{id}', [ProductController::class, 'update']);
   Route::delete('/delete/{id}', [ProductController::class, 'destroy']);
   Route::get('/show/{id}',[ProductController::class, 'show']);
+  Route::post('/GestionPrix/{ProductId}',[ProductController::class,'setFinalPrices']);
+  Route::put('/approval-status/{id}', [ProductController::class, 'changeApprovalStatus']);
   Route::get('filterProduct', [Controller::class, 'filterProduct']);
+  Route::get('/pending', [ProductController::class, 'indexPending']);
+  Route::get('/approved', [ProductController::class, 'indexApproved']);
+  Route::get('/refused', [ProductController::class, 'indexRefused']);
   
  
 

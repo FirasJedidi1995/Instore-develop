@@ -28,18 +28,31 @@ class ProductInstagrammerController extends Controller
 
     }
 
-    public function getIstagrammerProducts(){
+    public function getIstagrammerProducts(Request $request){
         $user = auth()->user();
-        $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
-                            ->where('instagrammer_id', $user->id)
-                            ->get();
+        $approvalStatus = $request->input('approval_status');
+    
+       
+        $query = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])
+                        ->where('instagrammer_id', $user->id);
+    
+        
+        if ($approvalStatus) {
+            $query->where('approval_status', $approvalStatus);
+        }
+    
+        // Exécuter la requête
+        $products = $query->get();
     
         return response()->json($products, Response::HTTP_OK);
     }
 
     public function index()
     {
-        $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->get();
+        $products = Product::with(['subcategory', 'brand', 'sizes', 'colors', 'images'])->
+        where('approval_status', 'approved')->get();
+        
+      
         return response()->json($products, Response::HTTP_OK);
     }
 
@@ -51,8 +64,6 @@ class ProductInstagrammerController extends Controller
             'description' => 'nullable|string',
             'quantity' => 'nullable|integer|min:0|required_without_all:combinations',
             'priceSale' => 'required|numeric|min:0',
-            'priceFav' => 'nullable|numeric|min:0',
-            'priceMax' => 'nullable|numeric|min:0',
             'subcategory_id' => 'required|exists:subcategories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
@@ -66,13 +77,13 @@ class ProductInstagrammerController extends Controller
         
         $validatedData = $request->validate($rules);
     
-        if (isset($validatedData['priceFav']) && $validatedData['priceFav'] <= $validatedData['priceSale']) {
-            return response()->json(['error' => 'Le prix favori doit être supérieur au prix de vente.'], 422);
-        }
+        // if (isset($validatedData['priceFav']) && $validatedData['priceFav'] <= $validatedData['priceSale']) {
+        //     return response()->json(['error' => 'Le prix favori doit être supérieur au prix de vente.'], 422);
+        // }
     
-        if (isset($validatedData['priceMax']) && $validatedData['priceMax'] <= $validatedData['priceFav']) {
-            return response()->json(['error' => 'Le prix maximum doit être supérieur au prix favori.'], 422);
-        }
+        // if (isset($validatedData['priceMax']) && $validatedData['priceMax'] <= $validatedData['priceFav']) {
+        //     return response()->json(['error' => 'Le prix maximum doit être supérieur au prix favori.'], 422);
+        // }
         
         $user = auth()->user();
         $reference = Str::random(8);
@@ -81,8 +92,6 @@ class ProductInstagrammerController extends Controller
         $product->description = $validatedData['description'] ?? null;
         $product->quantity = $validatedData['quantity'] ?? 0;
         $product->priceSale = $validatedData['priceSale'];
-        $product->priceFav = $validatedData['priceFav'] ?? null;
-        $product->priceMax = $validatedData['priceMax'] ?? null;
         $product->reference = $reference;
         $product->subcategory_id = $validatedData['subcategory_id'];
         $product->brand_id = $validatedData['brand_id'] ?? null;
@@ -167,8 +176,6 @@ class ProductInstagrammerController extends Controller
             'description' => 'nullable|string',
             'quantity' => 'nullable|integer|min:0|required_without_all:combinations',
             'priceSale' => 'sometimes|required|numeric|min:0',
-            'priceFav' => 'nullable|numeric|min:0',
-            'priceMax' => 'nullable|numeric|min:0',
             'subcategory_id' => 'sometimes|required|exists:subcategories,id',
             'brand_id' => 'sometimes|required|exists:brands,id',
             'echantillon' => 'nullable|in:FREE,PAID,REFUNDED',
@@ -185,8 +192,6 @@ class ProductInstagrammerController extends Controller
         $product->name = array_key_exists('name', $validatedData) ? $validatedData['name'] : $product->name;
         $product->description = $validatedData['description'] ?? null;
         $product->priceSale = $validatedData['priceSale'];
-        $product->priceFav = $validatedData['priceFav'] ?? null;
-        $product->priceMax = $validatedData['priceMax'] ?? null;
         $totalQuantity = 0;
     
         if (!empty($validatedData['combinations'])) {
