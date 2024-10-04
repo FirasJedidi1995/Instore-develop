@@ -20,9 +20,9 @@ class BrandController extends Controller
             $user = Auth::user();
             $user = User::find(Auth::id());
             $method = $request->route()->getActionMethod();
-            $roles = $user->getRoleNames()->toArray(); // Get the user's roles as an array
+            $roles = $user->getRoleNames()->toArray(); 
 
-            // Define roles and method access logic
+            
             $allowedRolesForIndexAndShow = ['provider-intern', 'provider-extern'];
             $allowedRolesForAllMethods = ['admin', 'superadmin'];
 
@@ -36,7 +36,7 @@ class BrandController extends Controller
                 }
             }
 
-            // If access is denied
+            
             abort(403, 'Unauthorized');
         });
     }
@@ -56,7 +56,7 @@ class BrandController extends Controller
             'name' => 'required|string',
             'category_ids' => 'required|array|min:1',
             'category_ids.*' => 'integer|exists:categories,id',
-            'image' => 'required|image|max:2048' // Validation de l'image
+            'image' => 'required|image|max:2048' 
         ];
 
         $validator = Validator::make($request->all(), $rules);
